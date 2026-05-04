@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local-only design references (see AGENTS.md)
+/analysis
+
+# claude code local state
+/.claude
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

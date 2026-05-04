@@ -1,26 +1,541 @@
 @import "tailwindcss";
+/* portfolio styles */
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+/* Tailwind v4 inlines hex / rgb literals into the generated utilities, so
+   `@theme { --color-background: #0a0a0a }` produces `.bg-background {
+   background-color: #0a0a0a }` — the var is exposed in :root but the utility
+   never reads it. To keep the utilities dynamic, we feed `@theme` a
+   `var(--bg)` reference: Tailwind can't pre-resolve a var, so the utility
+   compiles as `background-color: var(--bg)` and the cascade override below
+   (`[data-theme="light"]` setting `--bg`) takes effect at runtime. */
+@theme {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-fraunces);
+  --font-jakarta: var(--font-plus-jakarta);
+  --font-instrument-serif: var(--font-instrument);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root,
+[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --fg: #f5f5f5;
+  /* About halo stops — Crystal Reflections palette. Highlight is the pearly
+     sparkle, body is the saturated cyan glacier, base is the pale lavender
+     for a cool prismatic gradient. Halo opacity stays high in dark so the
+     cool hues read against the near-black bg. */
+  --about-halo-1: #e6f4ff;
+  --about-halo-2: #88e1ff;
+  --about-halo-3: #c8a8ff;
+  --about-halo-opacity: 0.45;
+}
+
+[data-theme="light"] {
+  --bg: #eef2f8;
+  --fg: #0a1828;
+  /* In light mode, the page bg is cool-cream — the halo is a punchier patch
+     of saturated cool colour. Base is a deeper mid-cyan so the bottom of
+     the gradient still reads against the cream and gives the halo depth,
+     mirroring the role the chartreuse foncé played in the lime version. */
+  --about-halo-1: #88e1ff;
+  --about-halo-2: #c8a8ff;
+  --about-halo-3: #5a9fc8;
+  --about-halo-opacity: 0.5;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--color-foreground);
+  color: var(--color-background);
+}
+
+/* Services marquee — translation pilotée par le scroll de la page via
+   `animation-timeline: scroll()` (CSS scroll-driven natif, même famille que
+   `view()` utilisé sur `.work-feature` et `#about [data-reveal-word]`). Le
+   track translate de 0 à -35% au fil du scroll racine ; à l'arrêt il est
+   figé, et il revient en arrière quand on remonte. `animation-duration:
+   auto` est requis pour que la timeline s'attache (avec une durée explicite
+   l'animation saute à son état final). Fallback Firefox sans scroll-driven
+   natif : `animation-fill-mode: both` fige le track à l'état initial
+   (translate3d(0,0,0)), marquee statique mais lisible. */
+.services-marquee-track {
+  animation-name: services-marquee-slide;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-iteration-count: 1;
+  animation-fill-mode: both;
+  animation-timeline: scroll(root block);
+}
+/* Le dégradé est appliqué AUX SPANS, pas au track : sur un flex container
+   très large qui déborde, `background-clip: text` peut ne pas peindre les
+   caractères en bord (les dernières lettres restent transparent → invisibles).
+   En posant le background sur chaque span (chaque span est un inline-block
+   avec son texte direct), chaque répétition reçoit un dégradé propre et
+   complet — plus de lettres "fantômes" en bord d'écran.
+   Même technique que `.email-gradient` (Contact) : background animé révélé
+   via background-clip:text. Palette portfolio cohérente avec le Hero. */
+.services-marquee-track > span {
+  background: linear-gradient(
+    90deg,
+    #88e1ff 0%,
+    #c8a8ff 35%,
+    #4ab8e8 70%,
+    #88e1ff 100%
+  );
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: marquee-shimmer 8s linear infinite;
+}
+@keyframes services-marquee-slide {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-35%, 0, 0); }
+}
+@keyframes marquee-shimmer {
+  to { background-position: 220% center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .services-marquee-track { animation: none; }
+  .services-marquee-track > span { animation: none; }
+}
+
+/* Services orb halo — radial spotlight in the service's accent color, sits
+   behind the canvas so each orb reads against #0a0a0a. --orb-halo is set
+   inline in components/sections/Services.tsx from palette.colorA. */
+.service-orb-wrap {
+  isolation: isolate;
+}
+.service-orb-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -15%;
+  background: radial-gradient(closest-side, var(--orb-halo, transparent) 0%, transparent 70%);
+  opacity: 0;
+  filter: blur(28px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Services reveal — applied by IntersectionObserver in components/sections/Services.tsx.
+   Premium cascade: orb scales in first, halo blooms, title and paragraph defocus
+   from blur(8px) to net with a soft Y settle. Easing is expo-out.
+   Uses @keyframes (not transition) so the animation always plays when .is-revealed
+   is added, regardless of whether the initial state was previously painted. */
+.service-item:not(.is-revealed) .service-orb-wrap {
+  opacity: 0;
+  transform: scale(0.92);
+}
+.service-item:not(.is-revealed) .service-title-row,
+.service-item:not(.is-revealed) .service-paragraph {
+  opacity: 0;
+}
+.service-item.is-revealed .service-orb-wrap {
+  animation: service-orb-in 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.service-item.is-revealed .service-orb-wrap::before {
+  animation: service-halo-in 1300ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
+}
+.service-item.is-revealed .service-title-row {
+  animation: service-text-in 1100ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
+}
+.service-item.is-revealed .service-paragraph {
+  animation: service-text-in 1100ms cubic-bezier(0.16, 1, 0.3, 1) 350ms both;
+}
+@keyframes service-orb-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes service-halo-in {
+  from { opacity: 0; }
+  to   { opacity: 0.22; }
+}
+@keyframes service-text-in {
+  from { opacity: 0; transform: translateY(12px); filter: blur(8px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .service-item:not(.is-revealed) .service-orb-wrap,
+  .service-item:not(.is-revealed) .service-title-row,
+  .service-item:not(.is-revealed) .service-paragraph {
+    opacity: 1;
+    transform: none;
+  }
+  .service-item.is-revealed .service-orb-wrap,
+  .service-item.is-revealed .service-orb-wrap::before,
+  .service-item.is-revealed .service-title-row,
+  .service-item.is-revealed .service-paragraph {
+    animation: none;
+  }
+  .service-item .service-orb-wrap::before {
+    opacity: 0.22;
+  }
+}
+
+/* Work feature — direction "film-poster éditorial inversé". Cadre à l'aspect
+   exact de l'image (10522/5168), pleine largeur de la grille. Surface claire
+   bleutée (plaque crystal) qui tranche par luminance avec le reste du site
+   dark — le cadre devient une plaque magazine posée sur la page sombre.
+   Halo orange focalisé au centre comme aura derrière la compo des 3 phones :
+   contraste chaud volontaire sur la plaque froide, film grain subtil en
+   multiply pour la finition photo.
+   Une seule motion d'entrée : opacity 0 → 1 + scale 0.96 → 1 sur la première
+   moitié de la traversée du viewport via view-timeline natif. */
+.work-feature {
+  background: #f4f7fb;
+  perspective: 1800px;
+  animation-name: work-feature-in;
+  animation-duration: auto;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+  animation-timeline: view();
+  animation-range: cover 0% cover 45%;
+  transition: filter 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.work-feature:hover {
+  filter: brightness(0.98);
+}
+.work-feature-fill {
+  background: linear-gradient(180deg, #f4f7fb 0%, #dde6f0 100%);
+}
+.work-feature-aura {
+  background: radial-gradient(
+    ellipse 70% 100% at 50% 50%,
+    rgb(255 110 20 / 0.85) 0%,
+    rgb(255 140 35 / 0.60) 25%,
+    rgb(255 165 55 / 0.30) 50%,
+    rgb(255 180 70 / 0.12) 70%,
+    transparent 88%
+  );
+  pointer-events: none;
+}
+.work-feature-grain {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='n' x='0%25' y='0%25' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='1.5' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+  background-size: 100px 100px;
+  mix-blend-mode: multiply;
+  opacity: 0.22;
+  pointer-events: none;
+}
+@keyframes work-feature-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .work-feature {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Hero triade intro — chaque ligne du H1 fade-up avec un délai progressif
+   au chargement. Réutilise le langage `service-text-in` (opacity + Y 12px
+   + blur 8px) pour cohérence avec les micro-interactions du reste du site.
+   `animation-fill-mode: both` fige l'état 0% pendant le delay. Désactivé
+   pour prefers-reduced-motion. */
+.hero-line {
+  animation: hero-line-in 1400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.hero-line:nth-child(1) { animation-delay: 400ms; }
+.hero-line:nth-child(2) { animation-delay: 700ms; }
+.hero-line:nth-child(3) { animation-delay: 1000ms; }
+@keyframes hero-line-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+    filter: blur(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-line {
+    animation: none;
+  }
+}
+
+/* Hero scroll indicator — slowly rotating SVG circle */
+.scroll-indicator {
+  animation: scroll-indicator-spin 18s linear infinite;
+  transform-origin: 50% 50%;
+}
+@keyframes scroll-indicator-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-indicator {
+    animation: none;
+  }
+}
+
+/* Contact email — animated gradient text. Palette cool prismatique alignée
+   sur le marquee Services et les halos About/Services/Work, pour que le
+   moment visuel principal du Contact reste dans la grammaire du site. */
+.email-gradient {
+  background: linear-gradient(90deg, #88e1ff 0%, #c8a8ff 35%, #4ab8e8 70%, #88e1ff 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: email-shimmer 7s linear infinite;
+}
+@keyframes email-shimmer {
+  to {
+    background-position: 220% center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .email-gradient {
+    animation: none;
+  }
+}
+
+/* Italic-i accents — même gradient cool prismatique que le marquee Services
+   et l'email Contact, appliqué aux <i> mono-lettre des titres. */
+.italic-i-gradient {
+  background: linear-gradient(90deg, #88e1ff 0%, #c8a8ff 35%, #4ab8e8 70%, #88e1ff 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: italic-i-shimmer 7s linear infinite;
+}
+@keyframes italic-i-shimmer {
+  to { background-position: 220% center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .italic-i-gradient { animation: none; }
+}
+
+/* About halo — gros blob radial coloré qui dépasse à droite, hors-cadre.
+   Reprend la palette Acid lime du Hero via les CSS vars `--about-halo-*`
+   définies plus haut, donc le halo swap automatiquement avec le toggle
+   dark/light. Trois radial-gradients elliptiques empilés et décalés sur
+   l'axe vertical : highlight (lime pâle / lime saturé en light) en haut,
+   corps (lime / or) au milieu, base (or / lime foncé) en bas. Le blur les
+   fond en un seul dégradé. Aucune animation : effet décoratif statique. */
+#about::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -18%;
+  width: 75vw;
+  max-width: 1000px;
+  height: 130vh;
+  max-height: 1400px;
+  transform: translateY(-50%);
+  background:
+    radial-gradient(ellipse 45% 15% at 55% 22%, var(--about-halo-1) 0%, transparent 75%),
+    radial-gradient(ellipse 60% 32% at 45% 52%, var(--about-halo-2) 0%, transparent 80%),
+    radial-gradient(ellipse 40% 15% at 55% 82%, var(--about-halo-3) 0%, transparent 75%);
+  filter: blur(65px);
+  opacity: var(--about-halo-opacity);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Services halo — miroir gauche de l'About avec les MÊMES paramètres
+   éprouvés (75vw / 1000px / 130vh / 1400px / blur 65) qu'on sait visibles.
+   Stops permutés (lavande en haut, pearly en bas) pour que ce ne soit pas
+   un simple flip de l'About. */
+#services::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -18%;
+  width: 75vw;
+  max-width: 1000px;
+  height: 130vh;
+  max-height: 1400px;
+  transform: translateY(-50%);
+  background:
+    radial-gradient(ellipse 45% 15% at 45% 22%, var(--about-halo-3) 0%, transparent 75%),
+    radial-gradient(ellipse 60% 32% at 55% 52%, var(--about-halo-2) 0%, transparent 80%),
+    radial-gradient(ellipse 40% 15% at 45% 82%, var(--about-halo-1) 0%, transparent 75%);
+  filter: blur(65px);
+  opacity: var(--about-halo-opacity);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Work halo — déborde à droite comme l'About, ancré sur le tiers haut de
+   la section (top: 0 + height 90vh) pour rester près du titre Réviz et
+   éviter de chevaucher le film-poster qui occupe le milieu. */
+#work::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -18%;
+  width: 75vw;
+  max-width: 1000px;
+  height: 90vh;
+  max-height: 1100px;
+  background:
+    radial-gradient(ellipse 50% 18% at 55% 25%, var(--about-halo-1) 0%, transparent 75%),
+    radial-gradient(ellipse 65% 36% at 50% 55%, var(--about-halo-2) 0%, transparent 80%),
+    radial-gradient(ellipse 35% 16% at 55% 88%, var(--about-halo-3) 0%, transparent 78%);
+  filter: blur(65px);
+  opacity: var(--about-halo-opacity);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* About reveal — scroll-driven word recolor (gris → blanc) façon monopo.
+   Chaque mot a sa propre timeline `view()` ancrée sur sa propre position dans
+   le viewport : la couleur passe du gris (text-foreground/30 en repos via la
+   classe Tailwind sur le span) au blanc plein quand le mot traverse la moitié
+   haute du viewport. Pas de sticky, pas de pin — le texte scroll normalement
+   avec la page.
+   Aucune lib JS : c'est du CSS scroll-driven natif (Chrome/Edge 115+,
+   Safari 26+). Sur Firefox sans support view-timeline l'animation s'évalue
+   à durée 0 → tous les mots affichés en blanc d'office, fallback lisible.
+   `animation-duration: auto` est REQUIRED — avec 0s par défaut l'animation
+   saute à son état final et ne tracke jamais le scroll. */
+#about [data-reveal-word] {
+  animation-name: about-word-reveal;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: view();
+  animation-range: cover 30% cover 65%;
+}
+@keyframes about-word-reveal {
+  to {
+    color: var(--color-foreground);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #about [data-reveal-word] {
+    animation: none;
+    color: var(--color-foreground);
+  }
+}
+
+/* Contact halo — palette cool prismatique alignée sur About/Services/Work via
+   les vars `--about-halo-*` (theme-switched automatiquement). Deux blobs
+   radial centrés-décalés, blur fort, opacité prudente. La section est un
+   fond inversé bg-foreground (off-white en dark, navy en light) — l'opacité
+   différe par theme pour rester lisible sur les deux. Z-index 0 → derrière
+   le contenu (qui passe en relative z-10). */
+#contact::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 85vw;
+  max-width: 1200px;
+  height: 90vh;
+  max-height: 1000px;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(ellipse 55% 50% at 28% 30%, var(--about-halo-2) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 55% at 72% 70%, var(--about-halo-3) 0%, transparent 70%);
+  filter: blur(100px);
+  opacity: 0.32;
+  pointer-events: none;
+  z-index: 0;
+}
+[data-theme="light"] #contact::before {
+  opacity: 0.45;
+}
+
+/* Contact grain — turbulence SVG en overlay très subtil pour casser le flat
+   du grand fond uniforme. mix-blend-mode soft-light fait que le grain prend
+   la teinte du fond sans assombrir / éclaircir uniformément. */
+#contact::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n' x='0%25' y='0%25' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='0.9' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+  background-size: 160px 160px;
+  mix-blend-mode: soft-light;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Status dot — vert émeraude désaturé (compatible palette froide du site,
+   pas un vert flashy). Pulse via after-pseudo qui grandit et fade out, donne
+   le signal "live disponibilité". Identique sur Contact (fond foreground) et
+   Footer (fond background) — la couleur reste lisible sur les deux. */
+.status-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #2ec4a3;
+  flex-shrink: 0;
+}
+.status-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: #2ec4a3;
+  animation: status-pulse 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  pointer-events: none;
+}
+@keyframes status-pulse {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(3);   opacity: 0;   }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-dot::after { animation: none; opacity: 0; }
+}
+
+/* Contact reveal — staggered entry sur les blocs principaux quand la section
+   entre dans le viewport. Status pill, headline, email, CTAs et infos row
+   cascadent avec des delays progressifs. Même langage que `service-text-in`
+   (opacity + 12px Y + blur 8px) pour cohérence inter-section.
+   Déclenché par .is-revealed posée par IntersectionObserver dans Contact.tsx. */
+#contact :where([data-contact-reveal]) {
+  opacity: 0;
+  transform: translateY(14px);
+  filter: blur(8px);
+}
+#contact.is-revealed [data-contact-reveal] {
+  animation: contact-reveal-in 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+#contact.is-revealed [data-contact-reveal="1"] { animation-delay: 50ms; }
+#contact.is-revealed [data-contact-reveal="2"] { animation-delay: 200ms; }
+#contact.is-revealed [data-contact-reveal="3"] { animation-delay: 380ms; }
+#contact.is-revealed [data-contact-reveal="4"] { animation-delay: 520ms; }
+#contact.is-revealed [data-contact-reveal="5"] { animation-delay: 660ms; }
+@keyframes contact-reveal-in {
+  from { opacity: 0; transform: translateY(14px); filter: blur(8px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0);   }
+}
+@media (prefers-reduced-motion: reduce) {
+  #contact :where([data-contact-reveal]) {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  #contact.is-revealed [data-contact-reveal] { animation: none; }
 }
