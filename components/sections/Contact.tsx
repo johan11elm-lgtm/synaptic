@@ -48,7 +48,7 @@ export function Contact() {
             data-contact-reveal="2"
             className="text-balance text-6xl font-medium leading-[0.95] tracking-tight sm:text-7xl md:text-8xl lg:text-[8.5rem] lg:leading-[0.92]"
           >
-            On en d<i className="font-serif italic italic-i-gradient">i</i>scute&nbsp;?
+            On en d<i className="font-serif italic">i</i>scute&nbsp;?
           </h2>
 
           <div data-contact-reveal="3" className="flex flex-col gap-3">

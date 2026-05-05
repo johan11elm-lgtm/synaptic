@@ -25,7 +25,7 @@ export function Work() {
 
         <div className="mb-10 flex items-end justify-between gap-6 sm:mb-14 md:mb-16">
           <h3 className="text-balance text-6xl font-medium leading-[0.92] tracking-tight sm:text-7xl md:text-8xl lg:text-[8rem]">
-            Rév<i className="font-serif italic italic-i-gradient">i</i>z
+            Rév<i className="font-serif italic">i</i>z
           </h3>
           <span className="hidden shrink-0 text-xs font-medium uppercase tracking-[0.14em] tabular-nums text-foreground/40 sm:block">
             N°&nbsp;01

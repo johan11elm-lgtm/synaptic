@@ -14,9 +14,9 @@ const themeInitScript = `(() => {
   try {
     var t = localStorage.getItem('portfolio-theme');
     if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-    else document.documentElement.dataset.theme = 'dark';
+    else document.documentElement.dataset.theme = 'light';
   } catch (_) {
-    document.documentElement.dataset.theme = 'dark';
+    document.documentElement.dataset.theme = 'light';
   }
 })();`;
 
@@ -63,7 +63,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${fraunces.variable} ${plusJakarta.variable} ${instrumentSerif.variable} antialiased`}
-      data-theme="dark"
+      data-theme="light"
       suppressHydrationWarning
     >
       <head>

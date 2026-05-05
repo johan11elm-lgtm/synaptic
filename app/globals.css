@@ -315,23 +315,6 @@ body {
   }
 }
 
-/* Italic-i accents — même gradient cool prismatique que le marquee Services
-   et l'email Contact, appliqué aux <i> mono-lettre des titres. */
-.italic-i-gradient {
-  background: linear-gradient(90deg, #88e1ff 0%, #c8a8ff 35%, #4ab8e8 70%, #88e1ff 100%);
-  background-size: 220% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: italic-i-shimmer 7s linear infinite;
-}
-@keyframes italic-i-shimmer {
-  to { background-position: 220% center; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .italic-i-gradient { animation: none; }
-}
-
 /* About halo — gros blob radial coloré qui dépasse à droite, hors-cadre.
    Reprend la palette Acid lime du Hero via les CSS vars `--about-halo-*`
    définies plus haut, donc le halo swap automatiquement avec le toggle

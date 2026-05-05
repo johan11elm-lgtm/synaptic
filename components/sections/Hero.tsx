@@ -67,9 +67,9 @@ export function Hero() {
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       <h1 className="relative z-10 w-full max-w-2xl text-3xl font-medium leading-[0.95] tracking-tight sm:max-w-3xl sm:text-5xl md:text-6xl">
-        <span className="hero-line block">S<i className="font-serif italic italic-i-gradient">i</i>tes.</span>
-        <span className="hero-line block">Appl<i className="font-serif italic italic-i-gradient">i</i>cations.</span>
-        <span className="hero-line block">Intégrat<i className="font-serif italic italic-i-gradient">i</i>ons IA.</span>
+        <span className="hero-line block">S<i className="font-serif italic">i</i>tes.</span>
+        <span className="hero-line block">Appl<i className="font-serif italic">i</i>cations.</span>
+        <span className="hero-line block">Intégrat<i className="font-serif italic">i</i>ons IA.</span>
       </h1>
 
       <div className="pointer-events-none absolute right-6 bottom-10 z-10 hidden sm:right-8 sm:bottom-14 sm:block">

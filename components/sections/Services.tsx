@@ -20,7 +20,7 @@ const services: Service[] = [
     num: "01",
     title: (
       <>
-        S<i className="font-serif italic italic-i-gradient">i</i>tes web
+        S<i className="font-serif italic">i</i>tes web
       </>
     ),
     body: "Landing, vitrine ou site complet, design sur mesure, animations subtiles, performances de premier ordre.",
@@ -35,7 +35,7 @@ const services: Service[] = [
     num: "02",
     title: (
       <>
-        Appl<i className="font-serif italic italic-i-gradient">i</i>cations
+        Appl<i className="font-serif italic">i</i>cations
       </>
     ),
     body: "Web apps de zéro, interfaces fluides, gestion d'état pensée pour scaler, et un soin du détail à chaque interaction.",
@@ -50,7 +50,7 @@ const services: Service[] = [
     num: "03",
     title: (
       <>
-        <i className="font-serif italic italic-i-gradient">I</i>ntégrations IA
+        <i className="font-serif italic">I</i>ntégrations IA
       </>
     ),
     body: "Branchement de modèles Anthropic et OpenAI dans vos flux : chatbots, génération de contenu, agents, automatisations.",
