@@ -25,9 +25,12 @@ export function Hero() {
     // (clientY - rect.top can produce ny << -1 when the hero is scrolled
     // off) and snapping back on re-entry.
     //
-    // Rect cached: `getBoundingClientRect()` per pointermove forced a layout
-    // flush every move (often dozens/sec under Lenis smooth scroll). We cache
-    // it at mount and refresh only on resize / scroll / Lenis tick.
+    // Rect cached + refreshed on `pointerenter` / `resize`. Listening on
+    // window `scroll` would force a layout flush per Lenis tick (~60×/sec)
+    // since Lenis uses native window.scrollTo() — far worse than computing
+    // the rect inline. `pointerenter` gives us a fresh rect right before the
+    // first pointermove of any new in-hero pointer sequence, which covers
+    // the post-scroll case (user scrolls then moves the mouse over the hero).
     let rect = section.getBoundingClientRect();
     const refreshRect = () => {
       rect = section.getBoundingClientRect();
@@ -49,13 +52,13 @@ export function Hero() {
     io.observe(section);
 
     section.addEventListener("pointermove", handlePointer);
+    section.addEventListener("pointerenter", refreshRect);
     window.addEventListener("resize", refreshRect, { passive: true });
-    window.addEventListener("scroll", refreshRect, { passive: true });
 
     return () => {
       section.removeEventListener("pointermove", handlePointer);
+      section.removeEventListener("pointerenter", refreshRect);
       window.removeEventListener("resize", refreshRect);
-      window.removeEventListener("scroll", refreshRect);
       io.disconnect();
       scene.dispose();
       sceneRef.current = null;
