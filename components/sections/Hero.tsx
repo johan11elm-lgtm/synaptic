@@ -24,8 +24,15 @@ export function Hero() {
     // at its last in-hero value instead of drifting to out-of-bounds NDC
     // (clientY - rect.top can produce ny << -1 when the hero is scrolled
     // off) and snapping back on re-entry.
+    //
+    // Rect cached: `getBoundingClientRect()` per pointermove forced a layout
+    // flush every move (often dozens/sec under Lenis smooth scroll). We cache
+    // it at mount and refresh only on resize / scroll / Lenis tick.
+    let rect = section.getBoundingClientRect();
+    const refreshRect = () => {
+      rect = section.getBoundingClientRect();
+    };
     const handlePointer = (e: PointerEvent) => {
-      const rect = section.getBoundingClientRect();
       const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
       scene.setPointer(nx, ny);
@@ -42,9 +49,13 @@ export function Hero() {
     io.observe(section);
 
     section.addEventListener("pointermove", handlePointer);
+    window.addEventListener("resize", refreshRect, { passive: true });
+    window.addEventListener("scroll", refreshRect, { passive: true });
 
     return () => {
       section.removeEventListener("pointermove", handlePointer);
+      window.removeEventListener("resize", refreshRect);
+      window.removeEventListener("scroll", refreshRect);
       io.disconnect();
       scene.dispose();
       sceneRef.current = null;

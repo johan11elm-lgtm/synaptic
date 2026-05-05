@@ -80,14 +80,12 @@ body {
   animation-fill-mode: both;
   animation-timeline: scroll(root block);
 }
-/* Le dégradé est appliqué AUX SPANS, pas au track : sur un flex container
-   très large qui déborde, `background-clip: text` peut ne pas peindre les
-   caractères en bord (les dernières lettres restent transparent → invisibles).
-   En posant le background sur chaque span (chaque span est un inline-block
-   avec son texte direct), chaque répétition reçoit un dégradé propre et
-   complet — plus de lettres "fantômes" en bord d'écran.
-   Même technique que `.email-gradient` (Contact) : background animé révélé
-   via background-clip:text. Palette portfolio cohérente avec le Hero. */
+/* Dégradé statique sur chaque span — l'animation `marquee-shimmer`
+   (background-position infinite) avait été retirée : `background-clip: text`
+   + `color: transparent` + repaint chaque frame sur 4 spans à `8vw` =
+   gros coût GPU/CPU pendant le scroll-driven slide → stutter visible. Le
+   slide scroll-driven du track suffit comme moment visuel ; le gradient
+   statique garde la cohérence palette avec le Hero. */
 .services-marquee-track > span {
   background: linear-gradient(
     90deg,
@@ -96,22 +94,16 @@ body {
     #4ab8e8 70%,
     #88e1ff 100%
   );
-  background-size: 220% auto;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: marquee-shimmer 8s linear infinite;
 }
 @keyframes services-marquee-slide {
   from { transform: translate3d(0, 0, 0); }
   to   { transform: translate3d(-35%, 0, 0); }
 }
-@keyframes marquee-shimmer {
-  to { background-position: 220% center; }
-}
 @media (prefers-reduced-motion: reduce) {
   .services-marquee-track { animation: none; }
-  .services-marquee-track > span { animation: none; }
 }
 
 /* Services orb halo — radial spotlight in the service's accent color, sits

@@ -74,13 +74,19 @@ export class LensScene {
     palette: Palette = DEFAULT_PALETTE,
     glass: Glass = DEFAULT_GLASS,
   ) {
+    // antialias: false — at dpr ≥ 1.5 the over-sampling already smooths the
+    // sphere silhouette, and the chromatic dispersion + grain mask any aliasing
+    // on the orb. MSAA on top is pure cost.
     this.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: false,
       alpha: false,
       powerPreference: "high-performance",
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // dpr cap 1.5 (was 2). The fragment shader runs Fresnel + 3 chromatic
+    // refractions + grain — at retina 2x that's 4x the pixels of dpr=1. Cutting
+    // to 1.5 saves ~44% of fragment work; the dispersion hides the loss.
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.setClearColor(0x000000, 1);
 
     this.scene = new THREE.Scene();
@@ -89,7 +95,10 @@ export class LensScene {
     this.camera.layers.enableAll();
 
     // --- Background sphere (inside-out) ---
-    this.bgGeometry = new THREE.SphereGeometry(1, 64, 64);
+    // 32x32 segments (was 64x64): the bg is rendered 6× per cubemap update
+    // (128px target) plus once for the main pass, so triangle count is the
+    // hot path. Procedural noise + grain hide the lower tessellation.
+    this.bgGeometry = new THREE.SphereGeometry(1, 32, 32);
     this.bgMaterial = new THREE.ShaderMaterial({
       vertexShader: bgVertex,
       fragmentShader: bgFragment,
@@ -124,7 +133,10 @@ export class LensScene {
     this.scene.add(this.cubeCamera);
 
     // --- Refractive orb ---
-    this.orbGeometry = new THREE.SphereGeometry(1, 96, 96);
+    // 48x48 segments (was 96x96). The shader normalizes the surface normal per
+    // fragment, so silhouette smoothness is what counts; at this size on screen
+    // 48 segments are visually indistinguishable from 96.
+    this.orbGeometry = new THREE.SphereGeometry(1, 48, 48);
     this.orbMaterial = new THREE.ShaderMaterial({
       vertexShader: orbVertex,
       fragmentShader: orbFragment,
@@ -233,10 +245,11 @@ export class LensScene {
 
     this.bgMaterial.uniforms.uTime.value = elapsed * 1.2;
 
-    // CubeCamera every 2nd frame: 6 face renders is the heaviest cost. The
-    // orb dispersion (3 refracted samples) already smears the cubemap, so a
-    // 30fps env update is imperceptible while halving the GPU budget.
-    if (this.frameIdx % 2 === 0) {
+    // CubeCamera every 3rd frame: 6 face renders is the heaviest cost. The
+    // orb dispersion (3 refracted samples) + the slow pointer lerp (0.04)
+    // already smooth out the cubemap; a 20fps env update is imperceptible
+    // and gives 33% more GPU headroom over the previous 30fps.
+    if (this.frameIdx % 3 === 0) {
       this.bgMaterial.uniforms.uGrainStrength.value = 0.0;
       this.cubeCamera.position.copy(this.orbMesh.position);
       this.cubeCamera.update(this.renderer, this.scene);
