@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Fraunces, Plus_Jakarta_Sans, Instrument_Serif } from "next/font/google";
+import { Geist, Fraunces, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SmoothScroll } from "@/components/SmoothScroll";
@@ -34,13 +34,6 @@ const fraunces = Fraunces({
   display: "swap",
 });
 
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta",
-  subsets: ["latin"],
-  weight: ["500"],
-  display: "swap",
-});
-
 const instrumentSerif = Instrument_Serif({
   variable: "--font-instrument",
   subsets: ["latin"],
@@ -63,7 +56,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${fraunces.variable} ${plusJakarta.variable} ${instrumentSerif.variable} antialiased`}
+      className={`${geistSans.variable} ${fraunces.variable} ${instrumentSerif.variable} antialiased`}
       data-theme="light"
       suppressHydrationWarning
     >

@@ -7,7 +7,7 @@ export function Footer() {
         <div className="grid gap-14 py-16 sm:py-20 md:grid-cols-12 md:gap-10">
           <div className="flex flex-col gap-7 md:col-span-6">
             <div className="flex items-baseline gap-1">
-              <span className="font-jakarta text-[28px] font-medium leading-none tracking-tight">
+              <span className="font-sans text-[28px] font-medium leading-none tracking-tight">
                 synaptic
               </span>
               <span className="font-instrument-serif text-[30px] italic leading-none">
