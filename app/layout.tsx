@@ -50,7 +50,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Johan — Sites, applications & intégrations IA",
+  title: "Synaptic — Sites, applications & intégrations IA",
   description:
     "Indépendant. Sites web, applications et intégrations IA, pensés et codés à la main pour marques et entrepreneurs exigeants.",
 };
