@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Fraunces, Plus_Jakarta_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { SmoothScroll } from "@/components/SmoothScroll";
 
 // Anti-FOUC theme init: reads the saved theme from localStorage and writes
 // `<html data-theme>` before page hydration. Inlined into <head> as a static
@@ -70,7 +71,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="bg-background text-foreground">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <SmoothScroll>{children}</SmoothScroll>
+        </ThemeProvider>
       </body>
     </html>
   );

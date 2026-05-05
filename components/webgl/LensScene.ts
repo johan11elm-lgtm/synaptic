@@ -48,7 +48,7 @@ const DEFAULT_GLASS: Glass = {
   refractionPower: 0.75,
 };
 
-const CUBE_RT_SIZE = 256;
+const CUBE_RT_SIZE = 128;
 
 export class LensScene {
   private readonly renderer: THREE.WebGLRenderer;
@@ -67,6 +67,7 @@ export class LensScene {
   private readonly pointer = new THREE.Vector2(0, 0);
   private readonly pointerTarget = new THREE.Vector2(0, 0);
   private readonly cameraLook = new THREE.Vector3(0, 0, 0);
+  private frameIdx = 0;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -232,10 +233,15 @@ export class LensScene {
 
     this.bgMaterial.uniforms.uTime.value = elapsed * 1.2;
 
-    // Cube render: zero grain so the orb picks up a clean cubemap.
-    this.bgMaterial.uniforms.uGrainStrength.value = 0.0;
-    this.cubeCamera.position.copy(this.orbMesh.position);
-    this.cubeCamera.update(this.renderer, this.scene);
+    // CubeCamera every 2nd frame: 6 face renders is the heaviest cost. The
+    // orb dispersion (3 refracted samples) already smears the cubemap, so a
+    // 30fps env update is imperceptible while halving the GPU budget.
+    if (this.frameIdx % 2 === 0) {
+      this.bgMaterial.uniforms.uGrainStrength.value = 0.0;
+      this.cubeCamera.position.copy(this.orbMesh.position);
+      this.cubeCamera.update(this.renderer, this.scene);
+    }
+    this.frameIdx++;
 
     // Main pass: visible film-stock grain in the bg shader.
     this.bgMaterial.uniforms.uGrainStrength.value = 0.07;
